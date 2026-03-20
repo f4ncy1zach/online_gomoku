@@ -1,1 +1,1 @@
-# online_omoku
+# online_gomoku
