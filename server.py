@@ -1,4 +1,6 @@
+import argparse
 import logging
+import random
 import socket
 import sys
 import threading
@@ -71,8 +73,10 @@ class Room:
     def start(self):
         black_player = self.players[BLACK]
         white_player = self.players[WHITE]
-        black_player.send(type="START", color=BLACK, opponent=white_player.name)
-        white_player.send(type="START", color=WHITE, opponent=black_player.name)
+        first_turn = random.choice([BLACK, WHITE])
+        self.game.current_turn = first_turn
+        black_player.send(type="START", color=BLACK, opponent=white_player.name, first_turn=first_turn)
+        white_player.send(type="START", color=WHITE, opponent=black_player.name, first_turn=first_turn)
 
     def handle_move(self, client, row, col):
         with self.lock:
@@ -129,6 +133,9 @@ class Room:
             )
 
     def handle_chat(self, client, message):
+        if not self.active:
+            client.send(type="ERROR", message="Room is no longer active")
+            return
         if not message:
             client.send(type="ERROR", message="Chat message cannot be empty")
             return
@@ -177,8 +184,17 @@ class GameServer:
     def serve_forever(self):
         self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server_sock.bind((self.host, self.port))
-        self.server_sock.listen()
+        try:
+            self.server_sock.bind((self.host, self.port))
+            self.server_sock.listen()
+        except OSError as exc:
+            logging.error("Failed to bind server on %s:%s (%s)", self.host, self.port, exc)
+            try:
+                self.server_sock.close()
+            except OSError:
+                pass
+            self.server_sock = None
+            return
         self.running = True
 
         logging.info("Server listening on %s:%s", self.host, self.port)
@@ -282,6 +298,19 @@ class GameServer:
             client.room.handle_forfeit(client)
             return
 
+        if msg_type == "REMATCH":
+            if client.room is None:
+                client.send(type="ERROR", message="You are not in a room yet")
+                return
+            if client.room.active:
+                client.send(type="ERROR", message="The current game is still active")
+                return
+
+            client.room = None
+            client.color = None
+            self.match_player(client)
+            return
+
         client.send(type="ERROR", message=f"Unknown message type: {msg_type}")
 
     def cleanup_client(self, client):
@@ -297,13 +326,42 @@ class GameServer:
         logging.info("Cleaned up client %s", client.name or client.addr)
 
 
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description="Online Gomoku server")
+    parser.add_argument("arg1", nargs="?", help="Legacy positional host or port")
+    parser.add_argument("arg2", nargs="?", help="Legacy positional port")
+    parser.add_argument("--host", dest="host_flag", help="Bind host/IP")
+    parser.add_argument("--port", dest="port_flag", type=int, help="Bind port")
+    args = parser.parse_args(argv)
+
+    host = HOST
+    port = DEFAULT_PORT
+
+    if args.host_flag:
+        host = args.host_flag
+    if args.port_flag is not None:
+        port = args.port_flag
+
+    if args.arg1:
+        if args.arg1.isdigit():
+            if args.port_flag is None:
+                port = int(args.arg1)
+        elif not args.host_flag:
+            host = args.arg1
+
+    if args.arg2 and args.port_flag is None:
+        port = int(args.arg2)
+
+    return host, port
+
+
 def main():
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(threadName)s %(message)s",
     )
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_PORT
-    server = GameServer(port=port)
+    host, port = parse_args(sys.argv[1:])
+    server = GameServer(host=host, port=port)
     server.serve_forever()
 
 
