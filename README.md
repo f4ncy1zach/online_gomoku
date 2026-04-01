@@ -4,8 +4,8 @@
 
 | Name | Student ID | Email |
 | :--- | :--- | :--- |
-| Alex (replace with full name) | (replace) | (replace) |
-| Teammate (replace) | (replace) | (replace) |
+| Tianxi Huang | 301570931 | tha121@sfu.ca |
+| Jinyan Jiang | 301575900 | jja141@sfu.ca |
 
 ## 1. Project Overview & Description
 
@@ -32,6 +32,8 @@ Launcher flow:
 
 Manual play commands:
 
+Use these if you want to run the server and client directly from separate terminals, which is useful for debugging or when you do not want to use the launcher.
+
 ```powershell
 python server.py 127.0.0.1 9999
 python client.py 127.0.0.1 9999
@@ -50,8 +52,6 @@ python client.py 127.0.0.1 9999
 - If an invalid port or unreachable host is entered in GUI tools, a connection/validation error is shown.
 
 ## 3. Video Demo
-
-Add your demo link here:
 
 - [Project Demo Video](https://example.com)
 
@@ -79,29 +79,52 @@ python launcher.py
 - (Optional) VS Code or Terminal for running commands.
 ## 6. Technical Protocol Details
 
-The project uses a newline-delimited JSON protocol over TCP.
+The project uses newline-delimited JSON over TCP. Each message is a JSON object encoded as UTF-8 and terminated by a single newline character. That framing lets the receiver read one message at a time with `readline()`.
 
-Common message types:
-- `HELLO`: sent by server when a client connects.
-- `JOIN`: sent by client with player name.
-- `WAIT`: sent by server while waiting for an opponent.
-- `START`: sent by server to both players with assigned color and opponent name.
-- `MOVE`: sent by client with `row` and `col`.
-- `UPDATE`: sent by server after valid moves.
-- `WIN` / `DRAW`: sent by server when game ends.
-- `CHAT`: relayed between players by server.
-- `FORFEIT`: sent when a player gives up.
-- `DISCONNECT`: sent to opponent when a peer disconnects.
-- `ERROR`: sent when the message format/state is invalid.
+Basic wire format:
 
-Serialization helpers are in `protocol.py` via `send_msg` and `recv_msg`.
+```json
+{
+	"type": "MESSAGE_NAME",
+	"...": "message-specific fields"
+}
+```
+
+The `type` field selects the protocol action. Other fields depend on the message.
+
+Core message flow:
+- `HELLO`: sent by the server immediately after a TCP connection is accepted.
+- `JOIN`: sent by the client after `HELLO` so the server learns the player name.
+- `WAIT`: sent by the server while the client is waiting for an opponent.
+- `START`: sent by the server when a match begins. It includes `color`, `opponent`, and `first_turn`.
+- `MOVE`: sent by the client with `row` and `col` when the player wants to place a stone.
+- `UPDATE`: sent by the server after a valid move. It includes `row`, `col`, `color`, and `next_turn`.
+- `WIN` / `DRAW`: sent by the server when the match ends.
+- `CHAT`: relays a chat message between players.
+- `FORFEIT`: ends the current match when a player gives up.
+- `DISCONNECT`: tells the other player that a peer disconnected.
+- `ERROR`: reports invalid input or invalid game state.
+
+Example messages:
+
+```json
+{ "type": "JOIN", "name": "Alice" }
+{ "type": "MOVE", "row": 7, "col": 7 }
+{ "type": "UPDATE", "row": 7, "col": 7, "color": "X", "next_turn": "O" }
+{ "type": "CHAT", "name": "Alice", "message": "hi" }
+```
+
+Serialization helpers live in `protocol.py`:
+- `send_msg(sock, **fields)` serializes the message and appends the newline.
+- `recv_msg(file_obj)` reads one newline-delimited JSON object and returns it as a dictionary.
 
 ## 7. Academic Integrity & References
 
 Academic integrity statement:
 - This codebase was developed for CMPT 371 coursework.
-- External help/tools were used for planning and documentation support only where declared by the team.
-- Final understanding, integration, and submission responsibility remain with the group members.
+- AI-assisted code blocks are marked in comments in `client.py` and `launcher.py`.
+- The AI-assisted sections cover GUI flow, launcher process control, and related helper logic.
+- The remaining code and final integration were reviewed and adjusted by the team.
 
 References:
 - Python socket programming HOWTO: https://docs.python.org/3/howto/sockets.html

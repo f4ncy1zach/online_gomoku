@@ -19,7 +19,7 @@ def random_name(excluded=None):
     options = [name for name in NAME_POOL if name.lower() not in excluded]
     return random.choice(options) if options else random.choice(NAME_POOL)
 
-
+# AI-generated code block: launcher GUI layout.
 class LauncherApp:
     def __init__(self, root):
         self.root = root

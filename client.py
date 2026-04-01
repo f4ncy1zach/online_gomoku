@@ -81,6 +81,7 @@ class NetworkClient:
 
 
 class GomokuGUI:
+    # AI-generated code block: GUI layout.
     def __init__(self, root, host, port, name):
         self.root = root
         self.root.title("Online Gomoku")
@@ -232,6 +233,7 @@ class GomokuGUI:
         self.status_led.itemconfigure(self.status_led_dot, fill=colors.get(state, "#f4b400"))
 
     def canvas_geometry(self):
+        # Recompute the grid geometry from the current widget size so the board stays centered when resized.
         width = max(self.canvas.winfo_width(), CANVAS_SIZE)
         height = max(self.canvas.winfo_height(), CANVAS_SIZE)
         spacing = min(width, height) / max(BOARD_SIZE - 1, 1)
@@ -256,6 +258,7 @@ class GomokuGUI:
         return x, y
 
     def point_to_cell(self, x, y):
+        # Convert a mouse position back into board coordinates.
         geom = self.canvas_geometry()
         col = round((x - geom["margin_x"]) / geom["spacing"])
         row = round((y - geom["margin_y"]) / geom["spacing"])
@@ -327,6 +330,7 @@ class GomokuGUI:
             return
 
         row, col = self.last_move
+        # AI-generated helper block: draw a high-contrast ring around the last move so it stays visible.
         geom = self.canvas_geometry()
         x, y = self.cell_to_point(row, col)
         radius = geom["radius"] + 5
@@ -428,6 +432,7 @@ class GomokuGUI:
             return
 
         if msg_type == "START":
+            # The server tells us which color opens the match, so the GUI must follow that turn order.
             self.board = [[EMPTY] * BOARD_SIZE for _ in range(BOARD_SIZE)]
             self.draw_board()
             self.color = msg.get("color")
@@ -445,6 +450,7 @@ class GomokuGUI:
             return
 
         if msg_type == "UPDATE":
+            # Update the local board first, then refresh the turn banner and the visible last-move cue.
             row = msg["row"]
             col = msg["col"]
             color = msg["color"]
@@ -572,6 +578,7 @@ class GomokuGUI:
         if self.is_closing:
             return
         self.is_closing = True
+        # If the user already forfeited, close silently instead of asking again.
         if self.forfeit_requested or self.game_over:
             self.net.close()
             if self.root.winfo_exists():
@@ -610,6 +617,7 @@ def ask_for_name(parent, initial_name=None):
         return random.choice(options) if options else random.choice(DEFAULT_NAMES)
 
     def randomize_name():
+        # AI-generated helper block: keep randomize from reusing the current name unless there is no alternative.
         current_name = name_var.get().strip()
         name_var.set(pick_name([current_name]))
         entry.icursor(tk.END)
