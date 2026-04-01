@@ -42,20 +42,25 @@ python client.py 127.0.0.1 9999
 
 ## 2. System Limitations & Edge Cases
 
+### 2.1 Limitations
+
 - The server uses threads and is designed for local PC usage, not high-concurrency production workloads.
 - Each match is limited to two players.
-- Multiple matches can run on the same server.
 - Matchmaking is intentionally simple and uses one waiting slot per side rather than a full lobby or queue system.
+- The launcher expects the bind IP and connect IP to be valid for the current machine and network.
+- Network play depends on TCP connectivity between the launcher/client and the server, so firewall rules or blocked ports may prevent clients from connecting.
+
+### 2.2 Edge Cases
+
+- Multiple matches can run on the same server.
 - If the server process is closed, connected clients will detect disconnect and stop normal gameplay.
 - If one player closes a client window, the GUI attempts a forfeit and the opponent is notified; if the connection drops abruptly, the server still ends the match cleanly.
 - The GUI closes its socket cleanly and attempts to forfeit when a match is active.
-- The launcher expects the bind IP and connect IP to be valid for the current machine and network.
-- Network play depends on TCP connectivity between the launcher/client and the server, so firewall rules or blocked ports may prevent clients from connecting.
 - If an invalid port or unreachable host is entered in GUI tools, a connection/validation error is shown.
 
 ## 3. Video Demo
 
-- [Project Demo Video](https://example.com)
+- [Project Demo Video](https://youtu.be/JRtGnOb3TY0)
 
 ## 4. Step-by-Step Run Launcher Guide
 
@@ -81,7 +86,9 @@ python launcher.py
 - (Optional) VS Code or Terminal for running commands.
 ## 6. Technical Protocol Details
 
-The project uses newline-delimited JSON over TCP. Each message is a JSON object encoded as UTF-8 and terminated by a single newline character. That framing lets the receiver read one message at a time with `readline()`.
+The project uses newline-delimited JSON over TCP. Each message is a JSON object encoded as UTF-8 and terminated by a single newline character.
+
+That framing lets the receiver read one message at a time with `readline()`.
 
 Basic wire format:
 
