@@ -96,8 +96,13 @@ python launcher.py
 
 - Python 3.10+ installed.
 - Tkinter available in your Python installation.
-- No third-party Python packages required.
 - (Optional) VS Code or Terminal for running commands.
+- Detailed Python and Tkinter installation steps, platform-specific notes, and Tkinter test commands are listed in `requirements.txt`.
+
+Tkinter installation and test note:
+- This project does not require third-party `pip` packages.
+- The GUI launcher and GUI client both require Tkinter.
+- If you are setting up a fresh machine, see `requirements.txt` for Windows, macOS, and Ubuntu installation instructions and verification steps.
 ## 6. Technical Protocol Details
 
 The project uses newline-delimited JSON over TCP. Each message is a JSON object encoded as UTF-8 and terminated by a single newline character.
