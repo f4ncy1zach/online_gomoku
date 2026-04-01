@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 
+# Default locations, port, and fallback player names used by the launcher UI.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_BIND_IP = "127.0.0.1"
 DEFAULT_CONNECT_IP = "127.0.0.1"
@@ -15,6 +16,7 @@ NAME_POOL = ["John", "Tom", "Alice", "Mia", "Leo", "Evan", "Nora", "Sophie"]
 
 
 def random_name(excluded=None):
+    # Pick a random default name, avoiding names already in use when possible.
     excluded = {value.strip().lower() for value in (excluded or []) if value}
     options = [name for name in NAME_POOL if name.lower() not in excluded]
     return random.choice(options) if options else random.choice(NAME_POOL)
@@ -22,10 +24,12 @@ def random_name(excluded=None):
 # AI-generated code block: launcher GUI layout.
 class LauncherApp:
     def __init__(self, root):
+        # Keep the root window and initialize the launcher state.
         self.root = root
         self.root.title("Gomoku Launcher")
         self.root.resizable(False, False)
 
+        # Tk variables keep the entry fields and status label in sync.
         self.bind_ip_var = tk.StringVar(value=DEFAULT_BIND_IP)
         self.connect_ip_var = tk.StringVar(value=DEFAULT_CONNECT_IP)
         self.port_var = tk.StringVar(value=str(DEFAULT_PORT))
@@ -40,6 +44,7 @@ class LauncherApp:
         self.root.protocol("WM_DELETE_WINDOW", self.quit_all)
 
     def build_ui(self):
+        # Main layout: server controls at the top, client controls below, status at the bottom.
         root_frame = tk.Frame(self.root, padx=14, pady=14)
         root_frame.pack(fill="both", expand=True)
 
@@ -105,10 +110,12 @@ class LauncherApp:
         client_frame.grid_columnconfigure(1, weight=1)
 
     def set_status(self, text):
+        # Update the visible status line and also log it to the console.
         self.status_var.set(text)
         print(f"[Launcher] {text}")
 
     def parse_network_fields(self):
+        # Validate and normalize the launcher network inputs before starting anything.
         bind_ip = self.bind_ip_var.get().strip() or DEFAULT_BIND_IP
         connect_ip = self.connect_ip_var.get().strip() or DEFAULT_CONNECT_IP
         port_text = self.port_var.get().strip()
@@ -121,13 +128,16 @@ class LauncherApp:
         return bind_ip, connect_ip, port
 
     def server_running(self):
+        # A launcher-managed server is considered running only if the process is alive.
         return self.server_process is not None and self.server_process.poll() is None
 
     def refresh_server_state(self):
+        # Clear stale process references after the server exits on its own.
         if self.server_process is not None and self.server_process.poll() is not None:
             self.server_process = None
 
     def server_reachable(self, connect_ip, port):
+        # Probe the target address briefly so we can detect an already-running server.
         try:
             with socket.create_connection((connect_ip, port), timeout=0.25):
                 return True
@@ -135,6 +145,7 @@ class LauncherApp:
             return False
 
     def can_bind_server(self, bind_ip, port):
+        # Try binding a temporary socket to detect whether the port is already in use.
         probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -149,23 +160,28 @@ class LauncherApp:
                 pass
 
     def cleanup_client_processes(self):
+        # Drop completed client processes from the tracked list.
         self.client_processes = [proc for proc in self.client_processes if proc.poll() is None]
 
     def randomize_names(self):
+        # Generate two distinct default names at once.
         first = random_name()
         second = random_name([first])
         self.name_a_var.set(first)
         self.name_b_var.set(second)
 
     def randomize_name_a(self):
+        # Refresh only client A's name while avoiding the current B name.
         current_name = self.name_a_var.get().strip()
         self.name_a_var.set(random_name([self.name_b_var.get(), current_name]))
 
     def randomize_name_b(self):
+        # Refresh only client B's name while avoiding the current A name.
         current_name = self.name_b_var.get().strip()
         self.name_b_var.set(random_name([self.name_a_var.get(), current_name]))
 
     def normalize_pair_names(self, raw_name_a, raw_name_b):
+        # Make sure both client names are usable and not identical.
         name_a = (raw_name_a or "").strip() or random_name()
         name_b = (raw_name_b or "").strip() or random_name([name_a])
         if name_a.casefold() == name_b.casefold():
@@ -173,6 +189,7 @@ class LauncherApp:
         return name_a, name_b
 
     def launch_client(self, slot):
+        # Launch a single client window for the selected slot.
         self.cleanup_client_processes()
         try:
             bind_ip, connect_ip, port = self.parse_network_fields()
@@ -217,6 +234,7 @@ class LauncherApp:
             messagebox.showerror("Launch Error", f"Failed to launch Client {slot}.\n{exc}")
 
     def start_server(self):
+        # Start the server only if the port is valid and currently available.
         self.refresh_server_state()
         if self.server_running():
             self.set_status("Server is already running.")
@@ -248,6 +266,7 @@ class LauncherApp:
             messagebox.showerror("Server Error", f"Failed to start the server.\n{exc}")
 
     def stop_server(self):
+        # Stop only the server process that this launcher started.
         self.refresh_server_state()
         if not self.server_running():
             self.set_status("Stop requested, but no launcher-managed server is running.")
@@ -262,6 +281,7 @@ class LauncherApp:
         self.set_status("Server stopped.")
 
     def launch_pair(self):
+        # Start two client windows that connect to the same server.
         self.cleanup_client_processes()
         try:
             bind_ip, connect_ip, port = self.parse_network_fields()
@@ -325,6 +345,7 @@ class LauncherApp:
             messagebox.showerror("Launch Error", f"Failed to launch client windows.\n{exc}")
 
     def terminate_process(self, proc):
+        # Try a graceful shutdown first, then force kill if the process does not exit.
         if proc is None:
             return
         try:
@@ -342,6 +363,7 @@ class LauncherApp:
                 pass
 
     def terminate_children(self):
+        # Stop all launcher-managed children before closing the UI.
         self.cleanup_client_processes()
         for proc in list(self.client_processes):
             self.terminate_process(proc)
@@ -350,12 +372,14 @@ class LauncherApp:
         self.server_process = None
 
     def quit_all(self):
+        # The launcher owns all spawned processes, so terminate them on exit.
         self.terminate_children()
         self.set_status("Launcher exiting. All launcher-managed processes were terminated.")
         self.root.destroy()
 
 
 def main():
+    # Entry point for the launcher GUI.
     root = tk.Tk()
     LauncherApp(root)
     root.mainloop()

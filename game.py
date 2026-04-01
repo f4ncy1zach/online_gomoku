@@ -2,6 +2,7 @@
 This is for local server
 """
 
+# Board constants shared by the server, client, and local test mode.
 BOARD_SIZE = 15
 EMPTY = "."
 BLACK = "X"
@@ -17,6 +18,7 @@ DIRECTIONS = [
 
 class GomokuGame:
     def __init__(self):
+        # Start every match with an empty board, Black to move first, and no winner yet.
         self.board = [[EMPTY] * BOARD_SIZE for _ in range(BOARD_SIZE)]
         self.current_turn = BLACK       # Black goes first
         self.winner = None              # None / BLACK / WHITE / "DRAW"
@@ -30,39 +32,46 @@ class GomokuGame:
           message  : str (reason for failure or "OK")
           winner   : None / BLACK / WHITE / "DRAW"
         """
+        # Validate the requested move before mutating the board.
         error = self._validate(row, col)
         if error:
             return {"success": False, "message": error, "winner": None}
 
+        # Place the stone and record the move count.
         self.board[row][col] = self.current_turn
         self.move_count += 1
 
-        # Check for a win
+        # Check whether this move created five in a row.
         if self._check_win(row, col, self.current_turn):
             self.winner = self.current_turn
             return {"success": True, "message": "OK", "winner": self.winner}
 
+        # If the board is full and nobody won, the result is a draw.
         if self.move_count == BOARD_SIZE * BOARD_SIZE:
             self.winner = "DRAW"
             return {"success": True, "message": "OK", "winner": "DRAW"}
 
-        # Switch turns
+        # Otherwise pass the turn to the other player.
         self.current_turn = WHITE if self.current_turn == BLACK else BLACK
         return {"success": True, "message": "OK", "winner": None}
 
 
     def _validate(self, row: int, col: int) -> str:
         """Return an error message string; return empty string if valid."""
+        # Reject moves after the game is already over.
         if self.winner:
             return "The game is already over"
+        # Reject coordinates outside the 15x15 board.
         if not (0 <= row < BOARD_SIZE and 0 <= col < BOARD_SIZE):
             return f"Out of bounds: ({row}, {col}), valid range is 0-{BOARD_SIZE - 1}"
+        # Reject moves that land on an occupied cell.
         if self.board[row][col] != EMPTY:
             return f"Cell ({row}, {col}) is already occupied"
         return ""
 
 
     def _check_win(self, row: int, col: int, color: str) -> bool:
+        # Count in each of the four line directions and look for any run of five.
         for dr, dc in DIRECTIONS:
             count = 1  # The current placed stone itself
             count += self._count_direction(row, col, dr, dc, color)
@@ -73,6 +82,7 @@ class GomokuGame:
 
     def _count_direction(self, row: int, col: int, dr: int, dc: int, color: str) -> int:
         """Count consecutive stones of the same color in one direction."""
+        # Walk outward until the line breaks or the edge of the board is reached.
         count = 0
         r, c = row + dr, col + dc
         while 0 <= r < BOARD_SIZE and 0 <= c < BOARD_SIZE and self.board[r][c] == color:
@@ -85,18 +95,22 @@ class GomokuGame:
     # Helpers
     # ──────────────────────────────────────────
     def is_over(self) -> bool:
+        # A match ends as soon as a winner or a draw is recorded.
         return self.winner is not None
 
     def get_board(self) -> list:
         """Return a deep copy of the board (for network module serialization)."""
+        # Return a copy so callers cannot mutate internal state accidentally.
         return [row[:] for row in self.board]
 
     def reset(self):
         """Reset the board, can be used for 'play again'."""
+        # Reinitialize the game to the default starting state.
         self.__init__()
 
     def display(self):
         """Print the current board in the terminal (ASCII art)."""
+        # Build a simple text board for local debugging and manual play.
         col_header = "   " + " ".join(f"{c:2}" for c in range(BOARD_SIZE))
         print(col_header)
         print("   " + "--" * BOARD_SIZE)
@@ -118,12 +132,14 @@ class GomokuGame:
 # Local two-player mode (for testing, no network needed)
 # ══════════════════════════════════════════════
 def local_game():
+    # Interactive terminal mode for quick manual testing without the network layer.
     game = GomokuGame()
     print("=== Gomoku Local Test Mode ===")
     print("Input format: row col (for example: 7 7)")
     print("Enter 'q' to quit\n")
 
     while not game.is_over():
+        # Show the current state, then ask the active player for a move.
         game.display()
         turn = "Black (X)" if game.current_turn == BLACK else "White (O)"
         raw = input(f"{turn} move > ").strip()
@@ -154,11 +170,13 @@ def local_game():
 # Unit tests
 # ══════════════════════════════════════════════
 def run_tests():
+    # Minimal built-in checks for the core game rules.
     print("=== Running Unit Tests ===\n")
     passed = 0
     failed = 0
 
     def check(name, condition):
+        # Small helper so each test prints a consistent pass/fail line.
         nonlocal passed, failed
         status = "PASS" if condition else "FAIL"
         print(f"  [{status}] {name}")
@@ -231,6 +249,7 @@ def run_tests():
     check("Board is cleared after reset", g.board[7][7] == EMPTY)
     check("Black moves first again after reset", g.current_turn == BLACK)
 
+    # Print the final summary so local test runs are easy to read.
     print(f"\nResult: {passed} passed / {failed} failed")
     return failed == 0
 

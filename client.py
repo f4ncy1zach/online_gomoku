@@ -11,6 +11,7 @@ from game import BLACK, BOARD_SIZE, EMPTY, WHITE
 from protocol import recv_msg, send_msg
 
 
+# Default board drawing sizes and connection settings.
 GRID_SPACING = 32
 MARGIN = 24
 STONE_RADIUS = 12
@@ -219,6 +220,7 @@ class GomokuGUI:
             self.set_led_state(state)
 
     def set_led_state(self, state):
+        # Map logical connection states to visible indicator colors.
         colors = {
             "connecting": "#f4b400",
             "online": "#2ecc71",
@@ -233,7 +235,7 @@ class GomokuGUI:
         self.status_led.itemconfigure(self.status_led_dot, fill=colors.get(state, "#f4b400"))
 
     def canvas_geometry(self):
-        # Recompute the grid geometry from the current widget size so the board stays centered when resized.
+        # Recompute the board geometry from the current widget size so the board stays centered when resized.
         width = max(self.canvas.winfo_width(), CANVAS_SIZE)
         height = max(self.canvas.winfo_height(), CANVAS_SIZE)
         spacing = min(width, height) / max(BOARD_SIZE - 1, 1)
@@ -267,6 +269,7 @@ class GomokuGUI:
         return row, col
 
     def draw_board(self):
+        # Redraw the entire board from local state so every visible element stays consistent.
         self.canvas.delete("all")
         geom = self.canvas_geometry()
         for i in range(BOARD_SIZE):
@@ -282,10 +285,12 @@ class GomokuGUI:
                     continue
                 self.draw_stone(row, col, color)
 
+        # Overlay helpers make the last move and hover target easy to see.
         self.draw_last_move_marker()
         self.draw_hover_preview()
 
     def draw_stone(self, row, col, color):
+        # Draw a single black or white stone with a small outline.
         geom = self.canvas_geometry()
         x, y = self.cell_to_point(row, col)
         radius = geom["radius"]
@@ -302,6 +307,7 @@ class GomokuGUI:
         )
 
     def draw_hover_preview(self):
+        # Show a translucent preview only when the user is allowed to move.
         if self.game_over or not self.my_turn or self.hover_cell is None:
             return
         row, col = self.hover_cell
@@ -346,9 +352,11 @@ class GomokuGUI:
         )
 
     def on_canvas_resize(self, _event=None):
+        # Any resize changes the coordinate mapping, so redraw the board.
         self.draw_board()
 
     def on_board_hover(self, event):
+        # Track the currently hovered cell so the preview stone follows the mouse.
         cell = self.point_to_cell(event.x, event.y)
         if cell == self.hover_cell:
             return
@@ -356,12 +364,14 @@ class GomokuGUI:
         self.draw_board()
 
     def on_board_leave(self, _event=None):
+        # Clear the hover preview when the pointer leaves the board.
         if self.hover_cell is None:
             return
         self.hover_cell = None
         self.draw_board()
 
     def on_board_click(self, event):
+        # Ignore clicks when the game is over or when it is not the local player's turn.
         if self.game_over:
             return
         if not self.my_turn:
@@ -377,6 +387,7 @@ class GomokuGUI:
             self.set_status("Connection is not available", state="error")
 
     def send_chat(self, _event=None):
+        # Send chat only when there is actual text to send.
         message = self.chat_entry.get().strip()
         if not message:
             return
@@ -386,6 +397,7 @@ class GomokuGUI:
             self.set_status("Failed to send chat. Connection is closed", state="error")
 
     def forfeit(self):
+        # Forfeit ends the match intentionally, so confirm before sending it.
         if self.game_over:
             return
         if not messagebox.askyesno("Confirm Forfeit", "Forfeit this match?"):
@@ -397,6 +409,7 @@ class GomokuGUI:
         self.set_status("Forfeit sent. You can close the window now.", state="game-over")
 
     def request_rematch(self):
+        # Rematch is only available after the current game ends.
         if not self.game_over:
             return
         if self.net.send(type="REMATCH"):
@@ -407,6 +420,7 @@ class GomokuGUI:
             self.set_status("Rematch request failed", state="error")
 
     def poll_messages(self):
+        # Poll queued network messages on the Tk event loop so UI updates stay thread-safe.
         if self.is_closing:
             return
         while True:
@@ -418,9 +432,11 @@ class GomokuGUI:
         self.root.after(100, self.poll_messages)
 
     def handle_message(self, msg):
+        # Every server message updates local state and the visible UI together.
         msg_type = msg.get("type")
 
         if msg_type == "HELLO":
+            # Complete the handshake by telling the server our player name.
             self.net.send(type="JOIN", name=self.name)
             self.set_banner("Connected. Waiting for matchmaking...")
             self.set_status("Connected. Waiting for matchmaking...", state="online")
@@ -432,7 +448,7 @@ class GomokuGUI:
             return
 
         if msg_type == "START":
-            # The server tells us which color opens the match, so the GUI must follow that turn order.
+            # The server assigns colors and first turn, so the GUI resets to match that state.
             self.board = [[EMPTY] * BOARD_SIZE for _ in range(BOARD_SIZE)]
             self.draw_board()
             self.color = msg.get("color")
@@ -450,7 +466,7 @@ class GomokuGUI:
             return
 
         if msg_type == "UPDATE":
-            # Update the local board first, then refresh the turn banner and the visible last-move cue.
+            # Mirror the server-approved move locally, then refresh the turn indicators.
             row = msg["row"]
             col = msg["col"]
             color = msg["color"]
@@ -472,6 +488,7 @@ class GomokuGUI:
             return
 
         if msg_type == "WIN":
+            # The winning move may be included, so apply it before showing the result.
             row = msg.get("row")
             col = msg.get("col")
             color = msg.get("color")
@@ -491,6 +508,7 @@ class GomokuGUI:
             return
 
         if msg_type == "DRAW":
+            # A draw ends the match without a winner.
             self.my_turn = False
             self.game_over = True
             self.rematch_btn.configure(state="normal")
@@ -500,6 +518,7 @@ class GomokuGUI:
             return
 
         if msg_type == "FORFEIT":
+            # Forfeit is also a terminal match result, but the winner depends on who gave up.
             self.my_turn = False
             self.game_over = True
             self.rematch_btn.configure(state="normal")
@@ -513,6 +532,7 @@ class GomokuGUI:
             return
 
         if msg_type == "DISCONNECT":
+                # If the opponent disappears, treat it as a finished match.
             self.my_turn = False
             self.game_over = True
             self.rematch_btn.configure(state="normal")
@@ -522,6 +542,7 @@ class GomokuGUI:
             return
 
         if msg_type == "_LOCAL_DISCONNECT":
+            # Local disconnect means the socket is gone, so disable further interaction.
             self.my_turn = False
             self.game_over = True
             self.rematch_btn.configure(state="disabled")
@@ -531,24 +552,29 @@ class GomokuGUI:
             return
 
         if msg_type == "ERROR":
+            # Server-side validation errors are surfaced directly to the player.
             self.set_banner("Action unavailable")
             self.set_status(f"Error: {msg.get('message', 'Unknown error')}", state="error")
             return
 
         if msg_type == "CHAT":
+            # Chat messages just append to the visible log.
             self.append_chat(f"{msg.get('name', 'Opponent')}: {msg.get('message', '')}")
             return
 
     def append_chat(self, text):
+        # ScrolledText is read-only by default, so temporarily enable it to append text.
         self.chat_log.configure(state="normal")
         self.chat_log.insert(tk.END, text + "\n")
         self.chat_log.see(tk.END)
         self.chat_log.configure(state="disabled")
 
     def set_banner(self, text):
+        # Banner text is the large status line at the top of the window.
         self.banner_var.set(text)
 
     def color_text(self, color):
+        # Translate protocol color values into human-readable labels.
         if color == BLACK:
             return "Black (X)"
         if color == WHITE:
@@ -556,6 +582,7 @@ class GomokuGUI:
         return color or "?"
 
     def turn_banner(self, next_turn):
+        # Build the short sentence shown in the top banner during active play.
         next_turn_text = self.color_text(next_turn)
         if self.my_turn:
             if self.move_count == 0:
@@ -564,6 +591,7 @@ class GomokuGUI:
         return f"Waiting for {next_turn_text} to move"
 
     def update_info(self, next_turn=None):
+        # Keep the small info strip aligned with the current match state.
         parts = [f"You: {self.name}", f"Color: {self.color_text(self.color)}"]
         parts.append(f"Opponent: {self.opponent or '?'}")
         if self.game_over:
@@ -575,6 +603,7 @@ class GomokuGUI:
         self.info_label.configure(text=" | ".join(parts))
 
     def on_close(self):
+        # Window close should clean up the socket and forfeit only when needed.
         if self.is_closing:
             return
         self.is_closing = True
@@ -599,6 +628,7 @@ class GomokuGUI:
 
 
 def ask_for_name(parent, initial_name=None):
+    # Modal dialog used when the user did not pass a name on the command line.
     dialog = tk.Toplevel(parent)
     dialog.title("Choose Name")
     dialog.resizable(False, False)
@@ -612,6 +642,7 @@ def ask_for_name(parent, initial_name=None):
     entry.grid(row=1, column=0, padx=(12, 6), pady=(0, 12), sticky="we")
 
     def pick_name(excluded=None):
+        # Match the random-name helper used elsewhere in the client.
         excluded = {value.strip().lower() for value in (excluded or []) if value}
         options = [name for name in DEFAULT_NAMES if name.lower() not in excluded]
         return random.choice(options) if options else random.choice(DEFAULT_NAMES)
@@ -642,6 +673,7 @@ def ask_for_name(parent, initial_name=None):
 
 
 def run_headless(host, port, name):
+    # Headless mode is useful for terminal debugging and quick connection checks.
     inbox = queue.Queue()
     client = NetworkClient(host, port, name, inbox)
     try:
@@ -659,6 +691,7 @@ def run_headless(host, port, name):
             except queue.Empty:
                 continue
 
+            # Headless mode prints protocol activity instead of drawing a GUI.
             msg_type = msg.get("type")
             if msg_type == "HELLO":
                 client.send(type="JOIN", name=name)
@@ -695,6 +728,7 @@ def run_headless(host, port, name):
                 print(f"{msg.get('name', 'Opponent')}: {msg.get('message', '')}")
                 continue
     except KeyboardInterrupt:
+        # Ctrl+C cleanly forfeits if the client is still in a match.
         if client.running:
             try:
                 client.send(type="FORFEIT")
@@ -706,6 +740,7 @@ def run_headless(host, port, name):
 
 
 def parse_args(argv=None):
+    # Support both positional arguments and newer named flags.
     parser = argparse.ArgumentParser(description="Online Gomoku GUI client")
     parser.add_argument("host", nargs="?", default=None, help="Server host (legacy positional)")
     parser.add_argument("port", nargs="?", type=int, default=None, help="Server port (legacy positional)")
@@ -723,6 +758,7 @@ def parse_args(argv=None):
 
 
 def main():
+    # Main entry point chooses GUI mode or headless mode based on command-line flags.
     host, port, provided_name, autoconnect, raise_window, headless = parse_args(sys.argv[1:])
 
     if headless:

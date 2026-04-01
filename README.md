@@ -34,12 +34,25 @@ Manual play commands:
 
 Use these if you want to run the server and client directly from separate terminals, which is useful for debugging or when you do not want to use the launcher.
 
+Open a new CLI or terminal window for each command.
+
+1. Start the server:
+
 ```powershell
 python server.py 127.0.0.1 9999
-python client.py 127.0.0.1 9999
+```
+
+2. Start the first client:
+
+```powershell
 python client.py 127.0.0.1 9999
 ```
 
+3. Start the second client:
+
+```powershell
+python client.py 127.0.0.1 9999
+```
 ## 2. System Limitations & Edge Cases
 
 ### 2.1 Limitations
@@ -49,6 +62,7 @@ python client.py 127.0.0.1 9999
 - Matchmaking is intentionally simple and uses one waiting slot per side rather than a full lobby or queue system.
 - The launcher expects the bind IP and connect IP to be valid for the current machine and network.
 - Network play depends on TCP connectivity between the launcher/client and the server, so firewall rules or blocked ports may prevent clients from connecting.
+- Testing was performed on Windows only, so behavior on other operating systems was not validated.
 
 ### 2.2 Edge Cases
 
