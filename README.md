@@ -42,11 +42,15 @@ python client.py 127.0.0.1 9999
 
 ## 2. System Limitations & Edge Cases
 
-- The server uses threads and is designed for coursework-scale usage, not high-concurrency production workloads.
+- The server uses threads and is designed for local PC usage, not high-concurrency production workloads.
+- Each match is limited to two players.
+- Multiple matches can run on the same server.
+- Matchmaking is intentionally simple and uses one waiting slot per side rather than a full lobby or queue system.
 - If the server process is closed, connected clients will detect disconnect and stop normal gameplay.
 - If one player closes a client window, the GUI attempts a forfeit and the opponent is notified; if the connection drops abruptly, the server still ends the match cleanly.
-- The GUI closes its socket cleanly and attempts to forfeit when a match is active, which keeps the server responsive.
-- Chat and move messages are line-delimited JSON over TCP; malformed client messages are rejected by the server.
+- The GUI closes its socket cleanly and attempts to forfeit when a match is active.
+- The launcher expects the bind IP and connect IP to be valid for the current machine and network.
+- Network play depends on TCP connectivity between the launcher/client and the server, so firewall rules or blocked ports may prevent clients from connecting.
 - If an invalid port or unreachable host is entered in GUI tools, a connection/validation error is shown.
 
 ## 3. Video Demo
@@ -119,7 +123,7 @@ Serialization helpers live in `protocol.py`:
 ## 7. Academic Integrity & References
 
 Academic integrity statement:
-- This codebase was developed for CMPT 371 coursework.
+- This codebase was developed for CMPT 371.
 - AI-assisted code blocks are marked in comments in `client.py` and `launcher.py`.
 - The AI-assisted sections cover GUI flow, launcher process control, and related helper logic.
 - The remaining code and final integration were reviewed and adjusted by the team.
