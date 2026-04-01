@@ -40,8 +40,6 @@ python client.py 127.0.0.1 9999
 python client.py 127.0.0.1 9999
 ```
 
-`client.py` starts the GUI client.
-
 ## 2. System Limitations & Edge Cases
 
 - The server uses threads and is designed for coursework-scale usage, not high-concurrency production workloads.
