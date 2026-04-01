@@ -1,0 +1,168 @@
+Online Gomoku environment requirements
+=====================================
+
+This project does not require any third-party Python packages from pip.
+
+Runtime requirements:
+- Python 3.10 or newer
+- Tkinter support available in the Python installation
+- A desktop environment capable of opening GUI windows
+- TCP networking available for the selected host and port
+
+Standard-library modules used by this project:
+- argparse
+- json
+- logging
+- os
+- queue
+- random
+- socket
+- subprocess
+- sys
+- threading
+- tkinter
+
+Fresh machine setup by operating system
+======================================
+
+Windows
+-------
+Recommended installation steps:
+1. Download and install Python 3.10+ from the official Python website:
+   https://www.python.org/downloads/windows/
+2. During installation, enable "Add Python to PATH".
+3. Keep the default Tcl/Tk option enabled so Tkinter is installed with Python.
+4. Open Command Prompt or PowerShell and verify Python:
+   python --version
+5. Verify Tkinter:
+   python -m tkinter
+
+Expected Tkinter test result:
+- A small Tkinter window should open.
+- If the window opens, Tkinter is installed correctly.
+
+If `python` is not recognized, try:
+- py --version
+- py -m tkinter
+
+Common Windows note:
+- In most official Windows Python installers, Tkinter is included automatically.
+
+macOS
+-----
+Recommended installation steps:
+1. Install Python 3.10+ from the official Python website:
+   https://www.python.org/downloads/macos/
+2. After installation, open Terminal and verify Python:
+   python3 --version
+3. Verify Tkinter:
+   python3 -m tkinter
+
+Expected Tkinter test result:
+- A small Tkinter window should open.
+- If the window opens, Tkinter is installed correctly.
+
+Alternative macOS installation:
+1. Install Homebrew if needed.
+2. Install Python:
+   brew install python
+3. Verify Python and Tkinter:
+   python3 --version
+   python3 -m tkinter
+
+Common macOS notes:
+- The official Python installer usually includes working Tkinter support.
+- If the system Python is old or incomplete, prefer the official Python installer or Homebrew Python.
+
+Linux (Ubuntu)
+--------------
+Recommended installation steps:
+1. Update package lists:
+   sudo apt update
+2. Install Python 3:
+   sudo apt install python3
+3. Install Tkinter support for Python 3:
+   sudo apt install python3-tk
+4. Verify Python:
+   python3 --version
+5. Verify Tkinter:
+   python3 -m tkinter
+
+Expected Tkinter test result:
+- A small Tkinter window should open.
+- If the window opens, Tkinter is installed correctly.
+
+Common Ubuntu notes:
+- On Ubuntu, Tkinter is often not included until `python3-tk` is installed.
+- If you are running in a headless environment without a desktop session, the GUI client and launcher may not open.
+
+How to test the project environment
+===================================
+
+1. Confirm Python is installed:
+- Windows:
+  python --version
+- macOS / Ubuntu:
+  python3 --version
+
+2. Confirm Tkinter is installed:
+- Windows:
+  python -m tkinter
+- macOS / Ubuntu:
+  python3 -m tkinter
+
+3. Confirm the project files are present:
+- launcher.py
+- client.py
+- server.py
+- game.py
+- protocol.py
+
+How to run the project
+======================
+
+Launcher mode:
+- Windows:
+  python launcher.py
+- macOS / Ubuntu:
+  python3 launcher.py
+
+Manual mode:
+- Start the server first.
+- Then start two clients.
+
+Windows:
+- python server.py 127.0.0.1 9999
+- python client.py 127.0.0.1 9999
+- python client.py 127.0.0.1 9999
+
+macOS / Ubuntu:
+- python3 server.py 127.0.0.1 9999
+- python3 client.py 127.0.0.1 9999
+- python3 client.py 127.0.0.1 9999
+
+Notes and limitations
+=====================
+
+- No pip installation is required for this project.
+- Tkinter is required for `launcher.py` and normal GUI use of `client.py`.
+- The default local test address is `127.0.0.1` and the default port is `9999`.
+- If the chosen port is already in use, the server will not start successfully.
+- Firewall rules may block clients from connecting to the server.
+- For same-machine testing, keep both host and connect address as `127.0.0.1`.
+
+Common errors
+=============
+
+`ModuleNotFoundError: No module named 'tkinter'`
+- Windows/macOS: reinstall Python using the official installer with Tcl/Tk support enabled.
+- Ubuntu: install Tkinter with `sudo apt install python3-tk`.
+
+GUI does not open
+- Make sure you are using a desktop environment, not a headless terminal-only session.
+- Verify Tkinter first with `python -m tkinter` or `python3 -m tkinter`.
+
+Client cannot connect to server
+- Make sure the server is already running.
+- Confirm that the host/IP and port are correct.
+- Check whether the firewall is blocking the selected port.
